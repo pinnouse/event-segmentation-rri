@@ -74,7 +74,7 @@ def parse_llm_output(output: str):
 
 
 # Define Prompt Function
-def prompt(message, temperature=0, max_tokens=4096, frequency_penalty=0, presence_penalty=0):
+def prompt(message, temperature=0, max_tokens=4096, frequency_penalty=0):
 	"""Prompt the LLM model
 
 	Args:
@@ -89,10 +89,6 @@ def prompt(message, temperature=0, max_tokens=4096, frequency_penalty=0, presenc
 			language model. Default value is 0 i.e. positive value discourages
 			the model from generating commonly used words and negative value
 			encourage the model to stick to more common words or phrases.
-		presence_penalty: Optional parameter that changes the behaviour of the
-			language model. Default value is 0 i.e. positive value reward the
-			model for producing certain tokens, encouraging it to generate
-			these more often and vice versa.
 
 
 	Returns:
@@ -106,46 +102,22 @@ def prompt(message, temperature=0, max_tokens=4096, frequency_penalty=0, presenc
 		}, ...]
 	"""
 	prompt_message = [{"role": "user", "content": message}]
-	response = pipe(prompt_message, max_new_tokens=max_tokens)
-	print(response[0]['generated_text'][-1]['content'])
+	response = pipe(prompt_message,
+				 max_new_tokens=max_tokens,
+				 temperature=temperature,
+				 repetition_penalty=(1+frequency_penalty))
 
-	# curr_response = client.chat.completions.create(
-	# 	# For GPT-3.5, 4
-	# 	model=model,
-	# 	messages=prompt_message,
-	# 	temperature=temperature,
-	# 	max_tokens=max_tokens,
-	# 	frequency_penalty=frequency_penalty,
-	# 	presence_penalty=presence_penalty
-	# )
-
-	return curr_response
+	return response
 
 
 def get_output(responses, choice: int = 0):
-	"""Read content form a OpenAIObject chat.completion.
+	"""Read content form LLM chat completion.
 
-	Keyword arguments:
-	responses -- the OpenAIObject chat.Completion
-	choice -- the choice of generated message
+	Args:
+		responses: the OpenAIObject chat.Completion
+		choice: the choice of generated message
 	"""
-
-	try:
-		return responses.choices[choice].message.content
-
-	except:
-		return responses.choices[choice].text
-
-
-def get_finish_reason(responses, choice: int = 0) -> str:
-	"""Get the stop reason of a OpenAIObject chat.completion.
-
-	Keyword arguments:
-	responses -- the OpenAIObject chat.Completion
-	choice -- the choice of generated message
-	"""
-
-	return responses.choices[choice].finish_reason
+	return responses[choice]['generated_text'][-1].content
 
 
 def split_text(parsed_text: List[str]) -> List[list]:
@@ -162,7 +134,7 @@ def split_text(parsed_text: List[str]) -> List[list]:
 	return segmented_events
 
 
-def gpt_segmentation(text_path, iters=1, model='gpt-3.5-turbo-16k'):
+def llm_segmentation(text_path, iters=1):
 	""" Given a text file, GPT model, and number of iterations, output the GPT segmented responses.
 
 	[tt, hh] = gpt_segmentation(text_path, iters, model):
@@ -190,18 +162,12 @@ def gpt_segmentation(text_path, iters=1, model='gpt-3.5-turbo-16k'):
 	for i in tqdm.tqdm(range(iter_times)):
 		curr_prompt = prompt_onset + text + prompt_offset
 
-		curr_response = prompt(model, curr_prompt)
+		curr_response = prompt(curr_prompt)
 
 		# Save the current model
 		responses.append(curr_response)
 
 	parsed_LLM = [parse_llm_output(get_output(item)) for item in responses]
-	finished_reasons = [get_finish_reason(item) for item in responses]
-
-	parsed_LLM_stop = []
-	for i in range(len(parsed_LLM)):
-		if finished_reasons[i] == 'stop':
-			parsed_LLM_stop.append(parsed_LLM[i])
 
 	segmented_events = split_text(parsed_LLM)
 
