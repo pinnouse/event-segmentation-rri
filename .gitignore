@@ -1,1 +1,5 @@
 .env
+stories
+results
+__pycache__
+**.npy

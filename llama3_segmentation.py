@@ -74,7 +74,7 @@ def parse_llm_output(output: str):
 
 
 # Define Prompt Function
-def prompt(message, temperature=0, max_tokens=4096, frequency_penalty=0):
+def prompt(message, temperature=0.1, max_tokens=4096, frequency_penalty=0):
 	"""Prompt the LLM model
 
 	Args:
@@ -117,7 +117,7 @@ def get_output(responses, choice: int = 0):
 		responses: the OpenAIObject chat.Completion
 		choice: the choice of generated message
 	"""
-	return responses[choice]['generated_text'][-1].content
+	return responses[choice]['generated_text'][-1]['content']
 
 
 def split_text(parsed_text: List[str]) -> List[list]:
@@ -134,7 +134,7 @@ def split_text(parsed_text: List[str]) -> List[list]:
 	return segmented_events
 
 
-def llm_segmentation(text_path, iters=1):
+def llm_segmentation(text_path, iters=1, temperature=0.1):
 	""" Given a text file, GPT model, and number of iterations, output the GPT segmented responses.
 
 	[tt, hh] = gpt_segmentation(text_path, iters, model):
@@ -162,7 +162,7 @@ def llm_segmentation(text_path, iters=1):
 	for i in tqdm.tqdm(range(iter_times)):
 		curr_prompt = prompt_onset + text + prompt_offset
 
-		curr_response = prompt(curr_prompt)
+		curr_response = prompt(curr_prompt, temperature)
 
 		# Save the current model
 		responses.append(curr_response)
